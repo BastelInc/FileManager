@@ -1,3 +1,7 @@
+//  This file is part of the Bastel project. It is distributed under
+//  GNU General Public License: https://www.gnu.org/licenses/gpl-3.0
+//  Copyright (C) Bastel.Inc - All Rights Reserved
+
 #include "FltkDialogBox.h"
 #include <FL/Fl_Toggle_Button.H>
 #include <FL/Fl_Button.H>

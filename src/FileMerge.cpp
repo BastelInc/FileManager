@@ -1,3 +1,7 @@
+//  This file is part of the Bastel project. It is distributed under
+//  GNU General Public License: https://www.gnu.org/licenses/gpl-3.0
+//  Copyright (C) Bastel.Inc - All Rights Reserved
+
 
 //../../fltk/lib/vc6/fltkd.lib sqlite3.lib comctl32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib setupapi.lib
 //../fltk/lib/fltkd.lib sqlite3.lib comctl32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib

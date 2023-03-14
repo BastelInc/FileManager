@@ -1,6 +1,8 @@
+//  This file is part of the Bastel project. It is distributed under
+//  GNU General Public License: https://www.gnu.org/licenses/gpl-3.0
+//  Copyright (C) Bastel.Inc - All Rights Reserved
+
 // FileArchivSQL.cpp: Implementierung der Klasse CFileArchivDB.
-//
-//////////////////////////////////////////////////////////////////////
 
 #include "basteltype.h"
 #include "FileTable.h"

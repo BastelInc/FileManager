@@ -1,6 +1,7 @@
-// FileFolder.cpp: Implementierung der Klasse CRecords.
-//
-//////////////////////////////////////////////////////////////////////
+//  This file is part of the Bastel project. It is distributed under
+//  GNU General Public License: https://www.gnu.org/licenses/gpl-3.0
+//  Copyright (C) Bastel.Inc - All Rights Reserved
+
 #include <string.h>
 #include "FileFolder.h"
 #include "Resource.h"

@@ -1,3 +1,7 @@
+//  This file is part of the Bastel project. It is distributed under
+//  GNU General Public License: https://www.gnu.org/licenses/gpl-3.0
+//  Copyright (C) Bastel.Inc - All Rights Reserved
+
 #include "FltkWindow.h"
 #include <FL/fl_draw.H>
 #include "Resource.h"
