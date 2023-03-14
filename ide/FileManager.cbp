@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="DxfCnc" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Debug">
+				<Option output="Debug/basteltree" prefix_auto="1" extension_auto="1" />
+				<Option object_output="Debug/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Option projectLinkerOptionsRelation="2" />
+				<Compiler>
+					<Add option="-m64" />
+					<Add option="-g" />
+					<Add option="-fPIC" />
+				</Compiler>
+				<Linker>
+					<Add option="-m64" />
+					<Add library="z" />
+				</Linker>
+			</Target>
+			<Target title="Release">
+				<Option output="Release/basteltree" prefix_auto="1" extension_auto="1" />
+				<Option object_output="Release/" />
+				<Option type="0" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-O2" />
+					<Add option="-s" />
+				</Compiler>
+				<Linker>
+					<Add library="z" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="`fltk-config --cxxflags`" />
+			<Add option="-fpermissive" />
+			<Add option="-DFRAMEBUFFER" />
+			<Add option="-DFLTK" />
+			<Add option="-DSERIALCOM" />
+			<Add directory="NeuronComm" />
+			<Add directory="include" />
+			<Add directory="." />
+		</Compiler>
+		<Linker>
+			<Add option="`fltk-config --ldstaticflags`" />
+			<Add library="usb-1.0" />
+			<Add library="pthread" />
+			<Add library="sqlite3" />
+		</Linker>
+		<Unit filename="BastelUtils.cpp" />
+		<Unit filename="CToolBox.cpp" />
+		<Unit filename="CToolBox.h" />
+		<Unit filename="FileArchivDB.cpp" />
+		<Unit filename="FileArchivDB.h" />
+		<Unit filename="FileFolder.cpp" />
+		<Unit filename="FileFolder.h" />
+		<Unit filename="FileMerge.cpp" />
+		<Unit filename="FileMerge.h" />
+		<Unit filename="FileTable.cpp" />
+		<Unit filename="FileTable.h" />
+		<Unit filename="FltkDialogBox.cpp" />
+		<Unit filename="FltkDialogBox.h" />
+		<Unit filename="FltkWindow.cpp" />
+		<Unit filename="FltkWindow.h" />
+		<Unit filename="ProgressStatus.cpp" />
+		<Unit filename="ProgressStatus.h" />
+		<Unit filename="Resource.cpp" />
+		<Unit filename="Resource.h" />
+		<Unit filename="TreeView.cpp" />
+		<Unit filename="TreeView.h" />
+		<Unit filename="include/BastelUtils.h" />
+		<Unit filename="include/basteltype.h" />
+		<Extensions />
+	</Project>
+</CodeBlocks_project_file>
