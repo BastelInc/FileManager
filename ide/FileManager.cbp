@@ -43,8 +43,7 @@
 			<Add option="-DFLTK" />
 			<Add option="-DSERIALCOM" />
 			<Add directory="NeuronComm" />
-			<Add directory="include" />
-			<Add directory="." />
+			<Add directory="../include" />
 		</Compiler>
 		<Linker>
 			<Add option="`fltk-config --ldstaticflags`" />
@@ -52,27 +51,29 @@
 			<Add library="pthread" />
 			<Add library="sqlite3" />
 		</Linker>
-		<Unit filename="BastelUtils.cpp" />
-		<Unit filename="CToolBox.cpp" />
-		<Unit filename="CToolBox.h" />
-		<Unit filename="FileArchivDB.cpp" />
-		<Unit filename="FileArchivDB.h" />
-		<Unit filename="FileFolder.cpp" />
-		<Unit filename="FileFolder.h" />
-		<Unit filename="FileMerge.cpp" />
-		<Unit filename="FileMerge.h" />
-		<Unit filename="FileTable.cpp" />
-		<Unit filename="FileTable.h" />
-		<Unit filename="FltkDialogBox.cpp" />
-		<Unit filename="FltkDialogBox.h" />
-		<Unit filename="FltkWindow.cpp" />
-		<Unit filename="FltkWindow.h" />
-		<Unit filename="ProgressStatus.cpp" />
-		<Unit filename="ProgressStatus.h" />
-		<Unit filename="Resource.cpp" />
-		<Unit filename="Resource.h" />
-		<Unit filename="TreeView.cpp" />
-		<Unit filename="TreeView.h" />
+		<Unit filename="../include/BastelUtils.h" />
+		<Unit filename="../include/CToolBox.h" />
+		<Unit filename="../include/FileArchivDB.h" />
+		<Unit filename="../include/FileFolder.h" />
+		<Unit filename="../include/FileMerge.h" />
+		<Unit filename="../include/FileTable.h" />
+		<Unit filename="../include/FltkDialogBox.h" />
+		<Unit filename="../include/FltkWindow.h" />
+		<Unit filename="../include/ProgressStatus.h" />
+		<Unit filename="../include/Resource.h" />
+		<Unit filename="../include/TreeView.h" />
+		<Unit filename="../include/basteltype.h" />
+		<Unit filename="../src/BastelUtils.cpp" />
+		<Unit filename="../src/CToolBox.cpp" />
+		<Unit filename="../src/FileArchivDB.cpp" />
+		<Unit filename="../src/FileFolder.cpp" />
+		<Unit filename="../src/FileMerge.cpp" />
+		<Unit filename="../src/FileTable.cpp" />
+		<Unit filename="../src/FltkDialogBox.cpp" />
+		<Unit filename="../src/FltkWindow.cpp" />
+		<Unit filename="../src/ProgressStatus.cpp" />
+		<Unit filename="../src/Resource.cpp" />
+		<Unit filename="../src/TreeView.cpp" />
 		<Unit filename="include/BastelUtils.h" />
 		<Unit filename="include/basteltype.h" />
 		<Extensions />
