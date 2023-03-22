@@ -15,6 +15,7 @@
 
 extern const char g_Path[];
 extern char   g_IniFile[_MAX_PATH];
+#ifndef DYNARRY
 
 
 #define MAX_DB_FNAME   128
@@ -100,6 +101,7 @@ public:
   virtual BOOL	SaveRecord(int ID_Volume);
   BOOL			InsertRecord(int ID_Volume);
   BOOL			UpdateRecord(int ID_Volume,DWORD RecID);
+  BOOL			UpdateRecordFileTime(int ID_Volume,DWORD RecID,time_t ftLastWriteTime,long nFileSize);
   virtual BOOL	GetRecordByRowID(DWORD RecID);
   virtual BOOL	GetRecordByPathAndName(char * lpfPath,char * lpfName);
   virtual BOOL  GetDirectoryContents(LPSTR pszDirectory,int pathlen,DWORD ID_Volume,DWORD ID_Parent);
@@ -126,5 +128,5 @@ public:
 };
 
 extern CFileArchivDB * FileArchivDB;
-
+#endif
 #endif // !defined(AFX_FILEARCHIVSQL_H__2BBDBA38_A577_4B92_AC79_F55A5E11AFBE__INCLUDED_)

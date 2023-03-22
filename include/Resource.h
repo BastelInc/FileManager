@@ -84,4 +84,14 @@ enum  eImage {imVert,imTee,imVertEnd,imOpenCont,imOpenLast,imCloseCont,imCloseLa
 #define  IDC_Backup1Upd  1162
 #define  IDC_Backup1Get  1163
 
+#define  IDC_DiffToolGet 1170
+#define  IDC_DiffPath    1171
+#define  IDC_EditToolGet 1172
+#define  IDC_EditPath    1173
+#define  IDC_JobList     1174
+#define  IDC_ToLocal     1175
+#define  IDC_ToServer    1176
+#define  IDC_ToUSBStk    1177
+#define  IDC_RunJob      1178
+
 #endif // RESOURCE_H

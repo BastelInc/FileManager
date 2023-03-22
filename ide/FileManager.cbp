@@ -2,7 +2,7 @@
 <CodeBlocks_project_file>
 	<FileVersion major="1" minor="6" />
 	<Project>
-		<Option title="DxfCnc" />
+		<Option title="FileManager" />
 		<Option pch_mode="2" />
 		<Option compiler="gcc" />
 		<Build>
@@ -42,6 +42,7 @@
 			<Add option="-DFRAMEBUFFER" />
 			<Add option="-DFLTK" />
 			<Add option="-DSERIALCOM" />
+			<Add option="-DDYNARRY" />
 			<Add directory="NeuronComm" />
 			<Add directory="../include" />
 		</Compiler>
@@ -74,8 +75,6 @@
 		<Unit filename="../src/ProgressStatus.cpp" />
 		<Unit filename="../src/Resource.cpp" />
 		<Unit filename="../src/TreeView.cpp" />
-		<Unit filename="include/BastelUtils.h" />
-		<Unit filename="include/basteltype.h" />
 		<Extensions />
 	</Project>
 </CodeBlocks_project_file>

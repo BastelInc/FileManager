@@ -29,7 +29,7 @@ int gSourceAndCompareMuster = 0x1F;
 const tDialogCtlItem rg_ToolBox  []= {
   { eDialogBox,"Tool",IDC_DialogBox, 4,  0,80,268,WS_BORDER| WS_TABSTOP},                       // Dialog
   { AUTORADIOBUTTON "Open",  IDM_FILEOPEN,  2+XRASTER*0,1+YRASTER*0,BUTTONWIDTH,BUTTONHEIGHT,BS_AUTORADIOBUTTON | WS_TABSTOP,NULL},
-  { BUTTON          "ReadDB",IDM_FILESAVE,  2+XRASTER*1,1+YRASTER*0,BUTTONWIDTH,BUTTONHEIGHT,WS_TABSTOP,NULL},
+  { BUTTON          "Path..",IDM_FILESAVE,  2+XRASTER*1,1+YRASTER*0,BUTTONWIDTH,BUTTONHEIGHT,WS_TABSTOP,NULL},
   //{ BUTTON          "Exit",  IDM_EXIT,      2+XRASTER*2,1+YRASTER*0,BUTTONWIDTH,BUTTONHEIGHT,WS_TABSTOP,NULL},
   { CHECKBOX        "Local", IDC_LocalSrc,  2+XRASTER*2,1+YRASTER*0,BUTTONWIDTH,BUTTONHEIGHT,WS_TABSTOP|BS_AUTOCHECKBOX,NULL},
   { CHECKBOX        "Server",IDC_ServerSrc, 2+XRASTER*3,1+YRASTER*0,BUTTONWIDTH,BUTTONHEIGHT,WS_TABSTOP|BS_AUTOCHECKBOX,NULL},
@@ -43,29 +43,42 @@ const tDialogCtlItem rg_ToolBox  []= {
   { AUTORADIOBUTTON "Pict",  IDC_DocsPict,  2+XRASTER*3,1+YRASTER*1,BUTTONWIDTH,BUTTONHEIGHT,WS_TABSTOP|BS_AUTORADIOBUTTON,NULL},
   { AUTORADIOBUTTON "C-Src", IDC_DocsSrc,   2+XRASTER*4,1+YRASTER*1,BUTTONWIDTH,BUTTONHEIGHT,WS_TABSTOP|BS_AUTORADIOBUTTON,NULL},
   { AUTORADIOBUTTON "Syst",  IDC_DocsSys,   2+XRASTER*5,1+YRASTER*1,BUTTONWIDTH,BUTTONHEIGHT,WS_TABSTOP|BS_AUTORADIOBUTTON,NULL},
-  { BUTTON          "Scan",  IDM_UPDATE,    2+XRASTER*6,1+YRASTER*1,BUTTONWIDTH,BUTTONHEIGHT,WS_TABSTOP,NULL},
+  { CHECKBOX        "SubDir",IDM_UPDATE,    2+XRASTER*6,1+YRASTER*1,BUTTONWIDTH,BUTTONHEIGHT,WS_TABSTOP|BS_AUTOCHECKBOX,NULL},
   {0}
 };
 
 
 //-------------------------------------------------------------
 const tDialogCtlItem rg_Settings1[]= {
-  { eDialogBox,"Tool",  IDC_DialogBox-1,  4,  2,90,192,WS_BORDER| WS_TABSTOP},                        // Dialog
-  { BUTTON     "",      IDC_DocumentImg,  4,  4, 30, 33,0,NULL},
+  { eDialogBox,"Tool",     IDC_DialogBox-1,  4,  2,90,192,WS_BORDER| WS_TABSTOP},                        // Dialog
+  { BUTTON     "",        IDC_DocumentImg,  4,  4, 30, 33,0,NULL},
   //{ CTEXT      "Docs",  IDC_Documents,   38,  8, 42, 18,ES_LEFT},
 
-  { LTEXT      "Local", IDC_Local,       38, 25, 42, 18,ES_LEFT},
-  { EDITTEXT   "",      IDC_LocalPath,   38, 40,184, 18,WS_TABSTOP| WS_CLIENTEDGE,NULL},
-  { BUTTON     "Scan",  IDC_LocalUpd,     4, 40, 30, 18,WS_TABSTOP,NULL},
-  { BUTTON     "GetDir",IDC_LocalGet,   226, 40, 30, 18,WS_TABSTOP,NULL},
-  { LTEXT      "Server",IDC_Server,      38, 65, 42, 18,ES_LEFT},
-  { EDITTEXT   "",      IDC_ServerPath,  38, 80,184, 18,WS_TABSTOP| WS_CLIENTEDGE,NULL},
-  { BUTTON     "Scan",  IDC_ServerUpd,    4, 80, 30, 18,WS_TABSTOP,NULL},
-  { BUTTON     "GetDir",IDC_ServerGet,  226, 80, 30, 18,WS_TABSTOP,NULL},
-  { LTEXT      "Backup",IDC_Backup1,     38,105, 42, 18,ES_LEFT},
-  { EDITTEXT   "",      IDC_Backup1Path, 38,120,184, 18,WS_TABSTOP| WS_CLIENTEDGE,NULL},
-  { BUTTON     "Scan",  IDC_Backup1Upd,   4,120, 30, 18,WS_TABSTOP,NULL},
-  { BUTTON     "GetDir",IDC_Backup1Get, 226,120, 30, 18,WS_TABSTOP,NULL},
+  { LTEXT      "Local",    IDC_Local,       38, 25, 42, 10,ES_LEFT},
+  { EDITTEXT   "",         IDC_LocalPath,   38, 35,184, 18,WS_TABSTOP| WS_CLIENTEDGE,NULL},
+  { BUTTON     "Scan",     IDC_LocalUpd,     4, 35, 30, 18,WS_TABSTOP,NULL},
+  { BUTTON     "GetDir",   IDC_LocalGet,   226, 35, 30, 18,WS_TABSTOP,NULL},
+  { LTEXT      "Server",   IDC_Server,      38, 55, 42, 10,ES_LEFT},
+  { EDITTEXT   "",         IDC_ServerPath,  38, 65,184, 18,WS_TABSTOP| WS_CLIENTEDGE,NULL},
+  { BUTTON     "Scan",     IDC_ServerUpd,    4, 65, 30, 18,WS_TABSTOP,NULL},
+  { BUTTON     "GetDir",   IDC_ServerGet,  226, 65, 30, 18,WS_TABSTOP,NULL},
+  { LTEXT      "Backup",   IDC_Backup1,     38, 90, 42, 10,ES_LEFT},
+  { EDITTEXT   "",         IDC_Backup1Path, 38,100,184, 18,WS_TABSTOP| WS_CLIENTEDGE,NULL},
+  { BUTTON     "Scan",     IDC_Backup1Upd,   4,100, 30, 18,WS_TABSTOP,NULL},
+  { BUTTON     "GetDir",   IDC_Backup1Get, 226,100, 30, 18,WS_TABSTOP,NULL},
+
+
+  { LTEXT    "DiffTool",   -1,          38,130, 42, 10,ES_LEFT},
+  { BUTTON    "Get",   IDC_DiffToolGet,226,140, 30, 18,WS_TABSTOP,NULL},
+  { EDITTEXT  "diffuse", IDC_DiffPath , 38,140,184, 18,WS_TABSTOP,NULL},
+  { LTEXT    "Editor",   -1,            38,165, 42, 10,ES_LEFT},
+  { BUTTON    "Get",   IDC_EditToolGet,226,175, 30, 18,WS_TABSTOP,NULL},
+  { EDITTEXT  "xed",   IDC_EditPath,    38,175,184, 18,WS_TABSTOP,NULL},
+  { BUTTON "To Local", IDC_ToLocal,     14,200, 48, 18,WS_TABSTOP,NULL},
+  { BUTTON "To Server",IDC_ToServer,    62,200, 48, 18,WS_TABSTOP,NULL},
+  { BUTTON "To USBStk",IDC_ToUSBStk,   110,200, 48, 18,WS_TABSTOP,NULL},
+  { BUTTON "Run Job",      IDC_RunJob ,180,200, 64, 18,WS_TABSTOP,NULL},
+  { LISTBOX "Jobs",     IDC_JobList   , 14,220,230,118,WS_TABSTOP,NULL},
 
   {0}
 };
@@ -173,6 +186,13 @@ void CSettings1::Show(void)
       SetDlgItemText(IDC_LocalPath+i*4,g_DocsPath[i][gDocShowPrimaryPath]);
     }
   }
+
+
+  SetDlgItemText(IDC_DiffPath,gszDiffTool);
+  SetDlgItemText(IDC_EditPath,gszEditTool);
+
+
+
   /*  char s[32];
     if (AktTiefe && AktTiefe<=6)
     {
@@ -266,6 +286,7 @@ int CSettings1::WindowProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 //    float f;
     static bool recursion=0;
     switch (wParam) {
+#ifndef DYNARRY
     case IDC_LocalUpd:
       if (gDocShowPrimaryPath>=0 && gDocShowPrimaryPath  < 7) {
         deactivate();
@@ -291,6 +312,7 @@ int CSettings1::WindowProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
         activate();
       }
       break;
+#endif
     case IDC_LocalGet:
     case IDC_ServerGet:
     case IDC_Backup1Get: {
@@ -323,6 +345,80 @@ int CSettings1::WindowProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
       ParamModify = 1;
     }
     break;
+
+    case IDC_DiffToolGet :
+    case IDC_EditToolGet : {
+      Fl_Native_File_Chooser native;
+      tDialogCtlItem * pCtlItem = pGetDlgItem(wParam +1);
+      if (pCtlItem && pCtlItem->pWndObject) {
+        G_filename = ((Fl_Input *  )pCtlItem->pWndObject);
+        native.title("Pick a File");
+        native.directory(G_filename->value());
+        native.type(Fl_Native_File_Chooser::BROWSE_FILE);
+        // Show native chooser
+        if ( native.show()==0 ) {
+          if ( native.filename() ) {
+            G_filename->value(native.filename());
+            if (wParam==IDC_DiffToolGet) {
+              gBastelUtils.WriteProfileString("Tools","DiffTool",native.filename());
+              gBastelUtils.GetProfileString  ("Tools","DiffTool","diffuse",gszDiffTool,sizeof(gszDiffTool));
+            } else {
+              gBastelUtils.WriteProfileString("Tools","EditTool",native.filename());
+              gBastelUtils.GetProfileString  ("Tools","EditTool","xed",gszEditTool,sizeof(gszEditTool));
+            }
+          }
+        }
+      }
+    }
+    break;
+
+    case IDC_JobList     :
+      break;
+    case IDC_ToLocal  :
+    case IDC_ToServer :
+    case IDC_RunJob      :
+      tDialogCtlItem * pCtlItem = pGetDlgItem(IDC_JobList);
+      if (pCtlItem && pCtlItem->pWndObject) {
+        Fl_Browser * JobListe  = ((Fl_Browser *  )pCtlItem->pWndObject);
+        JobListe  ->clear();
+        int numSel = 0;
+        for (int i=0; i < NumShowFile; i++) {
+          if (rg_pCmpFile[i]->m_Job & MSelect) numSel ++;
+        }
+        char str[MAX_PATH];
+        int JobCount =0;
+        for (int i=0; i < NumShowFile; i++) {
+          CCmpFile * Obejct =  rg_pCmpFile[i];
+          if (Obejct) {
+            if (numSel) {
+              if (Obejct->m_Job & MSelect) {
+                sprintf(str,"%s%s",Obejct->m_Path,Obejct->m_Name);
+                JobListe  ->add(str);
+                JobCount ++;
+              }
+            } else {
+              if (Obejct->m_Quelle[0] == EQUAL && Obejct->m_Quelle[1] != EQUAL) {
+                if (wParam==IDC_ToServer) {
+                  sprintf(str,"To Right %s%s",Obejct->m_Path,Obejct->m_Name);
+                  JobListe  ->add(str);
+                  JobCount ++;
+                }
+              } else if (Obejct->m_Quelle[1] == EQUAL && Obejct->m_Quelle[0] != EQUAL) {
+                if (wParam==IDC_ToLocal) {
+                  sprintf(str,"To Left %s%s",Obejct->m_Path,Obejct->m_Name);
+                  JobListe  ->add(str);
+                  JobCount ++;
+                }
+              }
+            }
+
+          }
+
+        }
+        sprintf(str,"%d Jobs",JobCount);
+        SetStatusText(str,0,0);
+      }
+      break;
     }
   }
   return 0;
@@ -409,7 +505,7 @@ void CToolBox ::Show(void)
   CheckRadioButton(IDC_DocsBuero,IDC_DocsSys,IDC_Docs+gDocShowPrimaryPath);
 
 
-  CheckRadioButton(IDC_LocalSrc,IDC_BackupSrc,IDC_LocalSrc+(gSourceAndCompareMuster & 7));
+  CheckRadioButton(IDC_LocalSrc,IDC_BackupSrc,IDC_LocalSrc+(gSourceAndCompareMuster & 3));
 
 
 //  CheckDlgButton(IDC_LocalSrc,(CompareMuster  & 7) == 1);
@@ -417,6 +513,8 @@ void CToolBox ::Show(void)
 //  CheckDlgButton(IDC_BackupSrc,(CompareMuster & 7) == 4);
   CheckDlgButton(IDC_Equal, gSourceAndCompareMuster    & MEqual);
   CheckDlgButton(IDC_Differ,gSourceAndCompareMuster    & MIgnore);
+
+  CheckDlgButton(IDM_UPDATE,gInklSubfolder);
   show();
 }
 //-------------------------------------------------------------
@@ -454,6 +552,8 @@ int CToolBox ::WindowProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 //      ModifyFolderStruct("/home/rolf/test/");
 //    break;
     case IDM_UPDATE: {
+      gInklSubfolder= IsDlgButtonChecked(IDM_UPDATE);
+      gBastelUtils.WriteProfileInt("FileCompare","InklSubfolder",gInklSubfolder);
       gCmpSheet->ScanFolder(gScanPath,gInklSubfolder);
     }
     break;
@@ -514,12 +614,14 @@ int CToolBox ::WindowProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
     case IDC_Equal:
       gSourceAndCompareMuster ^= MEqual;
       gBastelUtils.WriteProfileInt("FileCompare","Compare",gSourceAndCompareMuster);
-      gCmpSheet->ScanFolder(gScanPath,gInklSubfolder);
+      gCmpSheet->sort_column(gCmpSheet->m_SortMode, gCmpSheet->_sort_reverse);
+//      gCmpSheet->ScanFolder(gScanPath,gInklSubfolder);
       break;
     case IDC_Differ:
       gSourceAndCompareMuster ^= MIgnore;
       gBastelUtils.WriteProfileInt("FileCompare","Compare",gSourceAndCompareMuster);
-      gCmpSheet->ScanFolder(gScanPath,gInklSubfolder);
+      gCmpSheet->sort_column(gCmpSheet->m_SortMode, gCmpSheet->_sort_reverse);
+      //gCmpSheet->ScanFolder(gScanPath,gInklSubfolder);
     }
     gCmpSheet->redraw();
     if (gSettings1->visible())gSettings1->Show();

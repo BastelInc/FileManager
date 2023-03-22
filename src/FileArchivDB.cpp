@@ -3,6 +3,7 @@
 //  Copyright (C) Bastel.Inc - All Rights Reserved
 
 // FileArchivSQL.cpp: Implementierung der Klasse CFileArchivDB.
+#ifndef DYNARRY
 
 #include "basteltype.h"
 #include "FileTable.h"
@@ -47,6 +48,7 @@ CFileArchivDB::CFileArchivDB()
   m_NumInserted=0;
   m_NumChecked=0;
   m_NewVol = 0;
+  pzTest = "Library used incorrectly";
 }
 //-------------------------------------------------------------
 CFileArchivDB::~CFileArchivDB()
@@ -335,9 +337,16 @@ BOOL CFileArchivDB::GetRecordByPathAndName(char * lpfPath,char * lpfName)
   int rc =0;
   if (m_hstmtRec2) sqlite3_finalize(m_hstmtRec2);
   m_hstmtRec2 = NULL;
-  sprintf(sqlstr, "SELECT _rowid_,dwFileAttributes,FileType,"\
-          "ftLastWriteTime0,nFileSize0,ftLastWriteTime1,nFileSize1,ftLastWriteTime2,nFileSize2,ftLastWriteTime3,nFileSize3"\
-          " FROM Dateien WHERE (PathName = '%s/' AND FileName = '%s')",lpfPath,lpfName);
+  if (*lpfPath=='\0') {
+    sprintf(sqlstr, "SELECT _rowid_,dwFileAttributes,FileType,"\
+            "ftLastWriteTime0,nFileSize0,ftLastWriteTime1,nFileSize1,ftLastWriteTime2,nFileSize2,ftLastWriteTime3,nFileSize3"\
+            " FROM Dateien WHERE (PathName = '' AND FileName = '%s')",lpfName);
+  } else {
+    if (lpfPath[0]=='/') lpfPath++;
+    sprintf(sqlstr, "SELECT _rowid_,dwFileAttributes,FileType,"\
+            "ftLastWriteTime0,nFileSize0,ftLastWriteTime1,nFileSize1,ftLastWriteTime2,nFileSize2,ftLastWriteTime3,nFileSize3"\
+            " FROM Dateien WHERE (PathName = '%s/' AND FileName = '%s')",lpfPath,lpfName);
+  }
   rc = sqlite3_prepare_v2(m_db, sqlstr, strlen(sqlstr), &m_hstmtRec2, &pzTest);
 
   if( rc!=SQLITE_OK ) {
@@ -419,6 +428,32 @@ BOOL CFileArchivDB::InsertRecord(int ID_Volume)
 }
 
 //-------------------------------------------------------------------
+BOOL CFileArchivDB::UpdateRecordFileTime(int ID_Volume,DWORD RecID,time_t ftLastWriteTime,long nFileSize)
+{
+  int rc=1;
+  sprintf(sqlstr,"UPDATE Dateien SET ftLastWriteTime%d = %ld,nFileSize%d = %ld WHERE _rowid_ = %d",
+          ID_Volume,
+          m_Record.ftLastWriteTime[ID_Volume],
+          ID_Volume,
+          m_Record.nFileSize[ID_Volume],
+          RecID);
+  rc = sqlite3_prepare_v2(m_db, sqlstr, strlen(sqlstr), &m_hstmtRecUpdate, &pzTest);
+
+  if( rc!=SQLITE_OK ) {
+    DisplayError(rc,m_hstmtRecUpdate,pzTest,__LINE__);
+    return 0;
+  }
+  rc = sqlite3_step(m_hstmtRecUpdate);
+  if( rc!=SQLITE_DONE ) {
+    DisplayError(rc,m_hstmtRecUpdate,pzTest,__LINE__);
+  }
+  sqlite3_finalize(m_hstmtRecUpdate);
+  m_hstmtRecUpdate=NULL;
+
+  return rc==SQLITE_OK;
+}
+
+//-------------------------------------------------------------------
 BOOL CFileArchivDB::UpdateRecord(int ID_Volume,DWORD RecID)
 {
   int rc=1;
@@ -442,7 +477,7 @@ BOOL CFileArchivDB::UpdateRecord(int ID_Volume,DWORD RecID)
     return 0;
   }
   rc = sqlite3_step(m_hstmtRecUpdate);
-  if( rc!=SQLITE_OK ) {
+  if( rc!=SQLITE_DONE ) {
     DisplayError(rc,m_hstmtRecUpdate,pzTest,__LINE__);
   }
   sqlite3_finalize(m_hstmtRecUpdate);
@@ -881,7 +916,7 @@ BOOL CFileArchivDB::CompareFile(int BasisID,char * lpfPath,char * lpfName)
 {
   struct stat statbuffer;
   char str[MAX_PATH];
-  unsigned char quelle[4] = {NOFILE ,NOFILE ,NOFILE ,NOFILE };//{FL_DARK1,FL_DARK1,FL_DARK1,FL_DARK1};
+  unsigned char quelle[4] = {NOFILE,NOFILE,NOFILE,NOFILE };   //{FL_DARK1,FL_DARK1,FL_DARK1,FL_DARK1};
   if (gDocShowPrimaryPath>=0 && gDocShowPrimaryPath  < 7) {
     strcpy(str,g_DocsPath[BasisID][gDocShowPrimaryPath]);
     strcat(str,"/");
@@ -906,18 +941,27 @@ BOOL CFileArchivDB::CompareFile(int BasisID,char * lpfPath,char * lpfName)
                 ineuste = i;
               }
             } else {
-              m_Record.ftLastWriteTime[i] = statbuffer.st_mtime;
-              m_Record.nFileSize[i]       = statbuffer.st_size;
+              if (m_Record.ftLastWriteTime[i] != statbuffer.st_mtime ||
+                  m_Record.nFileSize[i]       != statbuffer.st_size) {
+                // Datensatz und Wirklichkeit sind unterschiedlich
+                m_Record.ftLastWriteTime[i] = statbuffer.st_mtime;
+                m_Record.nFileSize[i]       = statbuffer.st_size;
+                UpdateRecordFileTime(BasisID,m_Record.ID,statbuffer.st_mtime,statbuffer.st_size);
+              }
             }
           }
           for (i=0; i< 4; i++) {
+            time_t diff = tneuste - m_Record.ftLastWriteTime[i];
             if (m_Record.ftLastWriteTime[i] == 0) {
               quelle[i] = NOFILE;
             } else if (m_Record.nFileSize[i] == 0) {
               quelle[i] = NOFILE;
             } else if (m_Record.nFileSize[i] != sneuste) {
               quelle[i] = SIZEDIFF;
-            } else if (m_Record.ftLastWriteTime[i] != tneuste) {
+            } else if (diff==3600 || diff==-3600) {
+              // Zeit-Zone ?
+              quelle[i] = EQUALTD;
+            } else if (diff!=0) {
               quelle[i] = TIMEDIFF;
             } else {
               quelle[i] = EQUAL;
@@ -932,4 +976,5 @@ BOOL CFileArchivDB::CompareFile(int BasisID,char * lpfPath,char * lpfName)
   }
   return *((DWORD*)&quelle);
 }
+#endif
 //-------------------------------------------------------------

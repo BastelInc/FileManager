@@ -72,7 +72,8 @@ int  MainPosY = 17;
 int  Mainwidth = 1000;
 int  Mainheight= 18 * 45;
 
-
+char szSysCmmand[MAX_PATH*3]= {0};
+int selNeFile=1;
 //-------------------------------------------------------------
 int AutoScan=0;
 void GlTimer_CB(void *data)
@@ -81,13 +82,54 @@ void GlTimer_CB(void *data)
   if (AutoScan) {
     AutoScan--;
     if (AutoScan==0) {
-      int multi = Fl::event_ctrl() != 0;
-      if (Fl::event_shift())  multi = 2;
-      gCmpSheet->ScanFolder(gScanPath,gInklSubfolder=multi);
+//      int multi = Fl::event_ctrl() != 0;
+//      if (Fl::event_shift())  multi = 2;
+      gCmpSheet->ScanFolder(gScanPath,gInklSubfolder);//=multi);
     }
   }
 
+  if (szSysCmmand[0]) {
+    if (gCmpSheet ->active()) {
+      gCmpSheet ->deactivate();
+      pFileExplorer->deactivate();
+    } else {
+      fl_system(szSysCmmand);
+      szSysCmmand[0]='\0';
+      gCmpSheet ->show();
+      gCmpSheet ->activate();
+      pFileExplorer->activate();
+    }
+  }
+    if (selNeFile) {
+    if (--selNeFile==0) {
+      selNeFile=0;
+      char  str[256];
+      gBastelUtils.GetProfileString("Docs","LastPath","/home/rolf",gLastPath,sizeof(gLastPath));
+      extern void load_file(const char *newfile, int ipos);
+      gStatus1->label(gLastPath);
+      //char * p = strrchr(str,'/');
+      //if (p) *p = '\0';
 
+      if (gDocShowPrimaryPath>=0 && gDocShowPrimaryPath  < 7) {
+        int src = gSourceAndCompareMuster & 3;
+        int n = strlen(g_DocsPath[0][gDocShowPrimaryPath]);
+        if (n < strlen(gLastPath)) {
+          sprintf(str,"%s%s",rgFileTypeText[gDocShowPrimaryPath],&gLastPath[n]);
+          SelectTreeItem(pFileExplorer,str);
+//          pFileExplorer->scroll_to(0,0);
+//          pFileExplorer->EnsureVisible(pFileExplorer->m_AktIndex);
+//          pFileExplorer->redraw();
+//          pFileExplorer->resize(0,yTool,xTool2-20,yTool2);
+//          pFileExplorer->resize(border,yTool,xTool2,yTool2);
+        }
+
+      } else {
+        SelectTreeItem(pFileExplorer,gLastPath);
+      }
+      //if(gWrkSheet )gWrkSheet ->FileOpen(str);
+
+    }
+    }
 
 #ifdef WIN32
   Fl::repeat_timeout(0.025, GlTimer_CB, data);
@@ -96,9 +138,10 @@ void GlTimer_CB(void *data)
 #endif
 }
 //---------------------------------------------------------------
-
-char database[256] = "/home/rolf/d/wrk/FileMerge/Archiv.db";
+#ifndef DYNARRY
+char database[256] = "/home/rolf/d/wrk/FileMerge_mit_db/Archiv.db";
 CFileArchivDB * FileArchivDB;
+#endif
 //---------------------------------------------------------------
 int ShowFileExplorer(LPCSTR szpathstr,LPCSTR szExtention)
 {
@@ -415,6 +458,7 @@ void cbExit(Fl_Button*, void*)
     }
     MainPrefs->flush();
   }
+  gBastelUtils.WriteProfileString("Docs","LastPath",gLastPath);
 
   if (gbModify) {
     int ret = fl_choice("Data modyify, you want to quit?","Nein","Ja",NULL);
@@ -529,11 +573,11 @@ int main(int argc, char **argv) {
     Fl::background(92, 91, 86);
     Fl::background2(86,85, 80);
     Fl::set_color(FL_SELECTION_COLOR, 241, 176, 0);
-  } else {
+  } else if (0) {
     Fl::scheme("xp");
   }
 
-  Fl::set_font(FL_FREE_FONT,"-*-medium-*-normal-*-12-*-*-*-*-*-*-*");
+  //Fl::set_font(FL_FREE_FONT,"-*-medium-*-normal-*-12-*-*-*-*-*-*-*");
   //Fl::set_font(0,"comic sans ms");
 //  Fl::set_font(0,"Ubuntu");
   //fl_height(0,22);
@@ -554,6 +598,9 @@ int main(int argc, char **argv) {
 
   MainWindow  = new Fl_Double_Window(Mainwidth, Mainheight, "BastelTree");
   //MainWindow= new CVisual_Pad(MainPosX,MainPosY,Mainwidth, Mainheight, "DxfCnc");
+  int border = 2;
+  int xTool2 = xTool-border*2;
+  int yTool2 = Mainheight-yTool-border*2 - yStatus;
   if (MainWindow  ) {
 //    MainWindow  ->size_range(1014,748);
     MainWindow  ->position(MainPosX,MainPosY);
@@ -566,9 +613,9 @@ int main(int argc, char **argv) {
       Fl_Group* ToolPart= new Fl_Group(0,0,xTool,Mainheight-yStatus,0);
       if (ToolPart) {
         ToolPart ->box(FL_DOWN_FRAME);
-        int border = 2;
-        int xTool2 = xTool-border*2;
-        int yTool2 = Mainheight-yTool-border*2 - yStatus;
+//        int border = 2;
+//        int xTool2 = xTool-border*2;
+//        int yTool2 = Mainheight-yTool-border*2 - yStatus;
         gToolBox = new CToolBox(border,border,xTool2,yTool-border,0);
         if (gToolBox ) {
 //          gToolBox ->labelfont (FL_FREE_FONT);
@@ -610,7 +657,7 @@ int main(int argc, char **argv) {
       extern int gSourceAndCompareMuster;
       gSourceAndCompareMuster  = gBastelUtils.GetProfileInt("FileCompare","Compare",gSourceAndCompareMuster);
       gDocShowPrimaryPath  = gBastelUtils.GetProfileInt("FileCompare","ShowDocs",gDocShowPrimaryPath );
-
+      gInklSubfolder  = gBastelUtils.GetProfileInt("FileCompare","InklSubfolder",gInklSubfolder);
 
       gToolBox ->Show();
       MainWindow->begin();
@@ -636,11 +683,11 @@ int main(int argc, char **argv) {
       //Fl_Group* WorkPart= new Fl_Group(0,0,xTool,Mainheight-yStatus,0);//Fl_Group(0,0,xTool,Mainheight-yStatus,0);
       //if (WorkPart)
       //{
-        //  WorkPart->box(FL_DOWN_FRAME);
+      //  WorkPart->box(FL_DOWN_FRAME);
 
 //        ptile->begin();
 
-        //VisualPad   = (CVisual_Pad * ) new CVisual_Pad(xTool,yTab, Mainwidth-xTool,Mainheight-yTab-yStatus,NULL);
+      //VisualPad   = (CVisual_Pad * ) new CVisual_Pad(xTool,yTab, Mainwidth-xTool,Mainheight-yTab-yStatus,NULL);
 //        VisualPad  =(CVisual_Pad * ) new CVisual_Pad(xTool,0, Mainwidth-xTool,yTab,NULL);
 //        if (VisualPad)
 //        {
@@ -661,7 +708,7 @@ int main(int argc, char **argv) {
 //          VisualPad->show();
 //        }
 //        else
-        yTab =0;
+      yTab =0;
 //        {
 //          ptile->begin();
 //          gWrkSheet = (CWrkSheet*) new CWrkSheet(xTool,yTab,Mainwidth-xTool,Mainheight-yTab-yStatus,NULL);
@@ -671,15 +718,15 @@ int main(int argc, char **argv) {
 //        WorkPart->resizable(gWrkSheet);
 
 
-        {
-          ptile->begin();
-          gCmpSheet = (CFileTable*) new CFileTable(xTool,yTab,Mainwidth-xTool,Mainheight-yTab-yStatus,NULL);
-          //D3WrkSheet->when(FL_WHEN_RELEASE);
-          gCmpSheet ->end();
-        }
-        //  WorkPart->resizable(gCmpSheet);
+      {
+        ptile->begin();
+        gCmpSheet = (CFileTable*) new CFileTable(xTool,yTab,Mainwidth-xTool,Mainheight-yTab-yStatus,NULL);
+        //D3WrkSheet->when(FL_WHEN_RELEASE);
+        gCmpSheet ->end();
+      }
+      //  WorkPart->resizable(gCmpSheet);
 
-        //  WorkPart->end();
+      //  WorkPart->end();
 //      }
 
 
@@ -705,10 +752,10 @@ int main(int argc, char **argv) {
   ShowFileExplorer("Home","");
 #endif
   Fill_TreeViewModel();
+#ifndef DYNARRY
   FileArchivDB = new CFileArchivDB();
   FileArchivDB->InitSQLTable(database);
-
-  int selNeFile=1;
+#endif
   ShowTab(IDM_FILEOPEN);
   //MainWindow ->resizable(VisualPad);
   MainWindow ->resizable(gCmpSheet );
@@ -724,7 +771,6 @@ int main(int argc, char **argv) {
 
   gAppRun=1;
   Fl::lock();
-  //int ret = Fl::run();
   gAppRun=1;
   Fl::lock();
   void * next_message ;
@@ -749,24 +795,10 @@ int main(int argc, char **argv) {
 //      //if (next_message)  free(next_message);
 //      next_message =NULL;
 //    }
-
-
-
-
-    if (selNeFile) {
-      selNeFile=0;
-      char  str[256];
-      gBastelUtils.GetProfileString("Docs","LastPath","/home/rolf",str,sizeof(str));
-      extern void load_file(const char *newfile, int ipos);
-      gStatus1->label(str);
-      //char * p = strrchr(str,'/');
-      //if (p) *p = '\0';
-      SelectTreeItem(pFileExplorer,str);
-      //if(gWrkSheet )gWrkSheet ->FileOpen(str);
-
-    }
     Sleep(10);
   }
+#ifndef DYNARRY
   FileArchivDB->FreeDB();
+#endif
   return ret;
 }

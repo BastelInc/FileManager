@@ -19,28 +19,30 @@
 #include <FL/names.h>
 #include <stdio.h>
 #include <stdlib.h>
-#define NUMFILES 1200
 
 #define   MLocalSrc  0x0000
 #define   MServerSrc 0x0001
 #define   MBackupSrc 0x0002
 #define   MExternSrc 0x0003
-#define   MEqual     0x0010
-#define   MDBdiff    0x0020
+#define   MDiffer    0x0010
+#define   MEqual     0x0020
+#define   MStateMask 0x003F
+
 #define   MJobPned   0x0040
 #define   MSelect    0x0080
 #define   MShowMask  0x00F0
 #define   MIgnore    0x8000
 
-//#define ITEM_BOLD    0x0040
-//#define ITEM_SEL     0x0200
-//#define ITEM_FAIL    0x0400
-//#define ITEM_OK      0x0800
-//#define ITEM_VISIBLE 0x1000
+#define ITEM_BOLD    0x0100
+#define ITEM_SEL     0x0200
+#define ITEM_FAIL    0x0400
+#define ITEM_OK      0x0800
+#define ITEM_VISIBLE 0x1000
 
 
 #define NOFILE    FL_DARK3
 #define EQUAL     FL_GREEN
+#define EQUALTD   FL_DARK_GREEN
 #define TIMEDIFF  FL_YELLOW
 #define SIZEDIFF  FL_RED
 
@@ -51,16 +53,22 @@ public:
   char * m_Name;
   long   m_Size;
   long   m_Datum;
-  int    m_RecID;
+  int    m_Job;
   int    m_FileType;
-//  int    m_dwShow;
+  int    m_SortKey;
   int    SetFileName(int ID_Volume,char * lpfName);
+  BOOL   CompareFile(int BasisID);
   CCmpFile();
   ~CCmpFile();
 };
 extern int NumShowFile;
 extern int NumCmpFile;
+#ifdef DYNARRY
+extern CCmpFile  ** rg_pCmpFile;//[NUMFILES];
+#else
+#define NUMFILES 65000
 extern CCmpFile  * rg_pCmpFile[NUMFILES];
+#endif
 extern void AddCmpFileName(int ID_Volume,char * lpfName);
 extern void ClearCmpFileNameList();
 extern void AdjustFileTable();
@@ -81,14 +89,16 @@ typedef struct {
   int  fType;
 } extStruct;
 
-extern const extStruct Exclude[37];
+extern const extStruct Exclude[];
 
 class CFileTable : public Fl_Table /*_Row*/
 {
 public:
   int s_left, s_top, s_right, s_bottom;	   // kb nav + mouse selection
+#ifdef EDITTABLE
   Fl_Input *input;					   // single instance of Fl_Int_Input widget
   int row_edit, col_edit;				   // row/col being modified
+#endif
   virtual ~CFileTable();
   int _sort_reverse;
   int m_Num_Header;
@@ -126,5 +136,8 @@ protected:
 };
 
 extern CFileTable       * gCmpSheet;
+extern char gLastPath[MAX_PATH];
+extern char gszDiffTool[MAX_PATH];
+extern char gszEditTool[MAX_PATH];
 
 #endif // !defined(AFX_FileTable_H__8BA166F8_5389_4463_B727_433ABCA3D382__INCLUDED_)

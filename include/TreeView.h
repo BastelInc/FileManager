@@ -76,7 +76,7 @@ public:
   void  GetStateUpdates(char ** pnt);
   void  GetTVItemUpdates(char ** pnt);
 // Fltk pack things
-  virtual void draw(); 
+  virtual void draw();
   void  Expand();
   void  Collapse();
   void  ShrinkChildItems();

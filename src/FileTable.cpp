@@ -4,6 +4,7 @@
 
 #include "FileMerge.h"
 #include "FileTable.h"
+#include "ProgressStatus.h"
 #ifdef WIN32
 #include <sys/utime.h>
 #else
@@ -15,6 +16,7 @@
 //CFileTable          *G_table = 0;			// table widget
 int LastR= -1;
 int LastC= -1;
+int bShowHidden =0;
 int LVBreitenx[6]= {80,300,100,120,60,300};
 const char * rgQuellText[4] = {
   "PC","Server","Media","USB"
@@ -28,7 +30,7 @@ const char * rgFileTypeText[7] = {
 
 enum {Buro=1,Media,CAD,Pict,CSrc,Syst};
 
-const extStruct Exclude[37] = {
+const extStruct Exclude[40] = {
   {"o",CSrc},
   {"d",CSrc},
   {"obj",CSrc},
@@ -45,6 +47,9 @@ const extStruct Exclude[37] = {
   {"supp",CSrc},
   {"json",CSrc},
   {"pdb",CSrc},
+  {"ncb",CSrc},
+  {"opt",CSrc},
+  {"plg",CSrc},
   {"s##",CAD},
   {"b##",CAD},
   {"s#1",CAD},
@@ -107,6 +112,10 @@ const extStruct Exttab[] = {
   {"",0}
 };
 
+char gszDiffTool[MAX_PATH] = "/home/rolf/d/wrk/WineWinMerge";
+char gszEditTool[MAX_PATH] = "xed";
+
+char gLastPath[MAX_PATH];
 //---------------------------------------------------------------
 CFileTable::CFileTable(int x, int y, int w, int h, const char *l) : Fl_Table/*_Row*/(x,y,w,h,l)
 {
@@ -173,23 +182,30 @@ void CFileTable::ScanFolder(const char * pSerachpath,int bSubdirs)
   char str[300];
   sprintf(str,"%s - FileArchive",pSerachpath);
   MainWindow->label(str);
+
+  SetBusyDisplay(50,"ScanFolder");
+
   if (gDocShowPrimaryPath>=0 && gDocShowPrimaryPath  < 7) {
     ClearCmpFileNameList();
     int src = gSourceAndCompareMuster & 3;
-    if (src == MLocalSrc) {
-      int n = strlen(g_DocsPath[0][gDocShowPrimaryPath]);
-      strcpy(str,pSerachpath);
-      GetDirectoryContents(str,n,0,bSubdirs);
-    } else {
-//      FileArchivDB->DBLoadRecords(src,gDocShowPrimaryPath);
-      int n = strlen(g_DocsPath[0][gDocShowPrimaryPath]);
-      strcpy(str,g_DocsPath[src][gDocShowPrimaryPath]);
-      strcat(str,&pSerachpath[n]);
-      GetDirectoryContents(str,n,src,bSubdirs);
-    }
-    AdjustFileTable();
+//    if (src == MLocalSrc) {
+//      int n = strlen(g_DocsPath[0][gDocShowPrimaryPath]);
+//      strcpy(str,pSerachpath);
+//      strcpy(gLastPath,pSerachpath);
+//      GetDirectoryContents(str,n,0,bSubdirs);
+//
+//    } else {
+    int n = strlen(g_DocsPath[src][gDocShowPrimaryPath]);
+    strcpy(str,g_DocsPath[src][gDocShowPrimaryPath]);
+    strcat(str,&pSerachpath[n]);
+    strcpy(gLastPath,pSerachpath);
+    GetDirectoryContents(str,n,src,bSubdirs);
+//    }
+    //AdjustFileTable();
     sort_column(m_SortMode, _sort_reverse);
   }
+  AdjustBusyDisplay(0);
+  SetBusyDisplay(100,"Done");
 }
 //------------------------------------------------------------
 BOOL CFileTable::GetDirectoryContents(char * pszDirectory,int pathlen,DWORD ID_Volume,int bSubdirs)
@@ -240,11 +256,11 @@ BOOL CFileTable::GetDirectoryContents(char * pszDirectory,int pathlen,DWORD ID_V
           strcat(str,"\\*.*");
           //ifEscape();
           //GetDirectoryContents(str,pathlen,ID_Volume,ID_FileType);//m_Folder.ID);
-            if (bSubdirs) {
-              if (GetDirectoryContents(str,pathlen,ID_Volume,bSubdirs)) {
-              }
-          NumFiles++;
-			}
+          if (bSubdirs) {
+            if (GetDirectoryContents(str,pathlen,ID_Volume,bSubdirs)) {
+            }
+            NumFiles++;
+          }
         }
       } else {
         ;
@@ -311,30 +327,38 @@ BOOL CFileTable::GetDirectoryContents(char * pszDirectory,int pathlen,DWORD ID_V
 
         case S_IFREG: {
           int flag = 1;
-          char * ext = strrchr(str,'.');
-          if (ext) {
-            ext++;
-            for (int i=0; i < (sizeof(Exclude)/sizeof(Exclude[0])); i++) {
-              if (Exclude[i].fType == gDocShowPrimaryPath) {
-                if (strcasecmp(Exclude[i].ext,ext)==0) {
-                  flag=0;
-                  break;
+          if (!bShowHidden && (pEntry->d_name[0]== '.')) {
+          } else {
+            char * ext = strrchr(str,'.');
+            if (ext) {
+              ext++;
+              for (int i=0; i < (sizeof(Exclude)/sizeof(Exclude[0])); i++) {
+                if (Exclude[i].fType == gDocShowPrimaryPath) {
+                  if (strcasecmp(Exclude[i].ext,ext)==0) {
+                    flag=0;
+                    break;
+                  }
                 }
               }
             }
+            if (flag) {
+              AddCmpFileName(ID_Volume,str);
+              if (!bSubdirs) StepBusyDisplay();
+            }
+            NumFiles++;
           }
-          if (flag) {
-            AddCmpFileName(ID_Volume,str);
-          }
-          NumFiles++;
         }
         break;
         case S_IFDIR:
           /* unless ".", "..", ".hidden" or vidix driver dirs */
-          if ((  strcmp(pEntry->d_name,".")!=0)
-              && (   strcmp(pEntry->d_name,"..")!=0)) {
-            if (bSubdirs) {
-              if (GetDirectoryContents(str,pathlen,ID_Volume,bSubdirs)) {
+          if (!bShowHidden && (pEntry->d_name[0]== '.')) {
+          } else {
+            if ((  strcmp(pEntry->d_name,".")!=0)
+                && (   strcmp(pEntry->d_name,"..")!=0)) {
+              if (bSubdirs) {
+                if (GetDirectoryContents(str,pathlen,ID_Volume,bSubdirs)) {
+                  StepBusyDisplay();
+                }
               }
             }
           }
@@ -353,8 +377,9 @@ BOOL CFileTable::GetDirectoryContents(char * pszDirectory,int pathlen,DWORD ID_V
 void CFileTable ::draw_cell(TableContext context, int R,int C, int X,int Y,int W,int H)
 {
   static char s[256];
-  Fl_Color fg = FL_FOREGROUND_COLOR; //drawfgcolor();
-  Fl_Color bg = FL_BACKGROUND2_COLOR;// drawbgcolor();
+  Fl_Color fg = active()?FL_FOREGROUND_COLOR:FL_DARK1; //drawfgcolor();
+  //Fl_Color bg = active()?FL_BACKGROUND2_COLOR: FL_LIGHT1;// drawbgcolor();
+  Fl_Color bg = active()?FL_BACKGROUND2_COLOR:FL_LIGHT1;
   switch ( context ) {
   case CONTEXT_COL_HEADER:
     fl_font(FL_HELVETICA | FL_BOLD, 14);
@@ -385,20 +410,23 @@ void CFileTable ::draw_cell(TableContext context, int R,int C, int X,int Y,int W
     return;
   case CONTEXT_CELL: {
 
+#ifdef EDITTABLE
     if (R == row_edit && C == col_edit && input->visible()) {
       return;					// dont draw for cell with input widget over it
     }
-
+#endif
     if (R < NumShowFile && rg_pCmpFile[R]->m_Quelle) {
       //int selected = /*m_SelRowMode ? row_selected(R) :*/ is_selected(R,C);
       //int selected = m_SelRowMode ?0:is_selected(R,C);
-      int selected =  rg_pCmpFile[R]->m_Quelle[3] & MSelect;
-      if (C==0 &&  selected ) {
+      int selected =  rg_pCmpFile[R]->m_Job & MSelect;
+      if (selected ) {  //C < 2  &&
         bg = FL_SELECTION_COLOR;
         fg = FL_BACKGROUND2_COLOR;
         fl_draw_box(FL_THIN_UP_BOX,X,Y,W,H,bg);
+        fl_color(fg);
       } else {
         fl_draw_box(FL_THIN_DOWN_BOX,X,Y,W,H,bg);
+        fl_color(rg_pCmpFile[R]->m_FileType==gDocShowPrimaryPath ?FL_CYAN:fg);
       }
 
 
@@ -411,11 +439,15 @@ void CFileTable ::draw_cell(TableContext context, int R,int C, int X,int Y,int W
             m = 1<<m;
             fl_color((m & DocShowMuster)!=0 ?FL_CYAN:fg);
       */
-      fl_color(rg_pCmpFile[R]->m_FileType==gDocShowPrimaryPath ?FL_CYAN:fg);
       sprintf(s, "%d", R*C);
       switch (C) {
       case 0: {
-        DWORD q = FileArchivDB->CompareFile(0,rg_pCmpFile[R]->m_Path,rg_pCmpFile[R]->m_Name);
+        DWORD q = 0;
+#ifndef DYNARRY
+        q = FileArchivDB->CompareFile(0,rg_pCmpFile[R]->m_Path,rg_pCmpFile[R]->m_Name);
+#else
+        q = rg_pCmpFile[R]->CompareFile(0);
+#endif
         (*(DWORD*)&rg_pCmpFile[R]->m_Quelle) = q;
         int w4 = (W-6)/4;
 //        const char StateClors[16] {
@@ -601,19 +633,36 @@ void CFileTable::UpdateSum()
 #endif
 
 //-----------------------------
+int Compare_SortKeyA( const void *arg1, const void *arg2 )
+{
+  CCmpFile * pCnA = *(CCmpFile ** )arg1;
+  CCmpFile * pCnB = *(CCmpFile ** )arg2;
+  int res = pCnB->m_SortKey - pCnA->m_SortKey;
+  return (int)res;
+}
+//-----------------------------
+int Compare_SortKey( const void *arg1, const void *arg2 )
+{
+  CCmpFile * pCnA = *(CCmpFile ** )arg1;
+  CCmpFile * pCnB = *(CCmpFile ** )arg2;
+  int res = pCnA->m_SortKey - pCnB->m_SortKey;
+  return (int)res;
+}
 static int Ascend=1;
+//-----------------------------
 int Compare_State( const void *arg1, const void *arg2 )
 {
   CCmpFile * pCnA = *(CCmpFile ** )arg1;
   CCmpFile * pCnB = *(CCmpFile ** )arg2;
-  int res = pCnB->m_Quelle[3] - pCnA->m_Quelle[3];
+  //int res = pCnB->m_Quelle[3] - pCnA->m_Quelle[3];
+  int res = (pCnB->m_SortKey&MStateMask) - (pCnA->m_SortKey&MStateMask);
   if (res == 0) {
     res = pCnB->m_Datum - pCnA->m_Datum;
     if (res==0) {
       res = pCnB->m_Size - pCnA->m_Size;
-      if (res==0) {
-        res = pCnB->m_RecID- pCnA->m_RecID;
-      }
+//      if (res==0) {
+//        res = pCnB->m_RecID- pCnA->m_RecID;
+//      }
     }
   }
   return (int)res*Ascend;
@@ -628,9 +677,9 @@ int Compare_Date( const void *arg1, const void *arg2 )
     res = pCnB->m_Quelle[3] - pCnA->m_Quelle[3];
     if (res == 0) {
       res = pCnB->m_Size - pCnA->m_Size;
-      if (res==0) {
-        res = pCnB->m_RecID- pCnA->m_RecID;
-      }
+//      if (res==0) {
+//        res = pCnB->m_RecID- pCnA->m_RecID;
+//      }
     }
   }
   return (int)res*Ascend;
@@ -645,9 +694,9 @@ int Compare_Size( const void *arg1, const void *arg2 )
     res = pCnB->m_Datum - pCnA->m_Datum;
     if (res==0) {
       res = pCnB->m_Quelle[3]- pCnA->m_Quelle[3];
-      if (res == 0) {
-        res = pCnB->m_RecID- pCnA->m_RecID;
-      }
+//      if (res == 0) {
+//        res = pCnB->m_RecID- pCnA->m_RecID;
+//      }
     }
   }
   return (int)res*Ascend;
@@ -658,9 +707,9 @@ int Compare_Vol( const void *arg1, const void *arg2 )
   CCmpFile * pCnA = *(CCmpFile ** )arg1;
   CCmpFile * pCnB = *(CCmpFile ** )arg2;
   int res = pCnB->m_FileType - pCnA->m_FileType;
-  if (res==0) {
-    res = pCnB->m_RecID- pCnA->m_RecID;
-  }
+//  if (res==0) {
+//    res = pCnB->m_RecID- pCnA->m_RecID;
+//  }
   return (int)res*Ascend;
 }
 //-----------------------------
@@ -697,29 +746,53 @@ int Compare_Path( const void *arg1, const void *arg2 )
 //-----------------------------
 void CFileTable::sort_column(int sortmode, int reverse)
 {
+
+  if ((gSourceAndCompareMuster & MEqual) && !(gSourceAndCompareMuster & MIgnore)) {
+//    Ascend = 1;
+    qsort(rg_pCmpFile,NumCmpFile,sizeof(CCmpFile*),Compare_SortKeyA);
+    NumShowFile=0;
+    for (int i=0; i< NumCmpFile; i++) {
+      if ((rg_pCmpFile[i]->m_SortKey) >0) NumShowFile=i+1;
+    }
+    rows(NumShowFile);
+  } else if (!(gSourceAndCompareMuster & MEqual) && (gSourceAndCompareMuster & MIgnore)) {
+//    Ascend = 0;
+    qsort(rg_pCmpFile,NumCmpFile,sizeof(CCmpFile*),Compare_SortKey);
+    NumShowFile=0;
+    for (int i=0; i< NumCmpFile; i++) {
+      if (rg_pCmpFile[i]->m_SortKey == 0) NumShowFile=i+1;
+    }
+    rows(NumShowFile);
+  } else {
+    NumShowFile=NumCmpFile;
+    rows(NumShowFile);
+  }
+
+
   Ascend = reverse?1:-1;
   //"Quelle","Name","Size","Datum","Type","Path"
   switch (sortmode) {
   case 0:
-    qsort(&rg_pCmpFile,NumCmpFile,sizeof(CCmpFile*),Compare_State);
+    qsort(rg_pCmpFile,NumShowFile,sizeof(CCmpFile*),Compare_State);
     break;
   case 1:
-    qsort(rg_pCmpFile,NumCmpFile,sizeof(CCmpFile*),Compare_Name);
+    qsort(rg_pCmpFile,NumShowFile,sizeof(CCmpFile*),Compare_Name);
     break;
   case 2:
-    qsort(&rg_pCmpFile,NumCmpFile,sizeof(CCmpFile*),Compare_Size);
+    qsort(rg_pCmpFile,NumShowFile,sizeof(CCmpFile*),Compare_Size);
     break;
   case 3:
-    qsort(&rg_pCmpFile,NumCmpFile,sizeof(CCmpFile*),Compare_Date);
+    qsort(rg_pCmpFile,NumShowFile,sizeof(CCmpFile*),Compare_Date);
     break;
   case 4:
-    qsort(&rg_pCmpFile,NumCmpFile,sizeof(CCmpFile*),Compare_Vol);
+    qsort(rg_pCmpFile,NumShowFile,sizeof(CCmpFile*),Compare_Vol);
     break;
   case 5:
-    qsort(&rg_pCmpFile,NumCmpFile,sizeof(CCmpFile*),Compare_Path);
+    qsort(rg_pCmpFile,NumShowFile,sizeof(CCmpFile*),Compare_Path);
     break;
   }
-  redraw();
+  AdjustFileTable();
+  //redraw();
 
 }
 //-------------------------------------------------------------
@@ -753,8 +826,11 @@ void CFileTable::event_callback(Fl_Widget*, void *data)
   o->event_callback2();
 }
 //-------------------------------------------------------------
+static unsigned int startTickCount;
+
 void CFileTable::event_callback2()
 {
+  static int validMove;
   int ROW = callback_row();
   int COL = callback_col();
   TableContext context = callback_context();
@@ -780,28 +856,62 @@ void CFileTable::event_callback2()
     break;
     case CONTEXT_CELL:
       if (Fl::event()==FL_PUSH) {
+        int t = GetTickCount();
+        validMove = (t > startTickCount+600);
+        startTickCount= t;
+
         int multi = Fl::event_ctrl() != 0;
         if (Fl::event_shift())  multi = 2;
         int start = -1;  // noch nicht begonnen
         for (int i=0; i < NumCmpFile; i++) {
-          if (start == -1 && (rg_pCmpFile[i]->m_Quelle[3]&MSelect) == MSelect) start = i;
+          int mod =0;
+          if (start == -1 && (rg_pCmpFile[i]->m_Job&MSelect) == MSelect) start = i;
           if (i==ROW) {
-            if ((rg_pCmpFile[ROW]->m_Quelle[3]&MSelect) == MSelect)
-              rg_pCmpFile[ROW]->m_Quelle[3]&= ~(MSelect);
+            if ((rg_pCmpFile[ROW]->m_Job&MSelect) == MSelect)
+              rg_pCmpFile[ROW]->m_Job&= ~(MSelect);
             else
-              rg_pCmpFile[ROW]->m_Quelle[3]|=  (MSelect);
+              rg_pCmpFile[ROW]->m_Job|=  (MSelect);
             start = -2; // ende der multi selection
+            mod = 1;
           } else if (multi==2) {
             if (start>=0) {
-              rg_pCmpFile[i]->m_Quelle[3]|=  (MSelect);
+              mod = !(rg_pCmpFile[i]->m_Job & MSelect);
+              rg_pCmpFile[i]->m_Job|=  (MSelect);
             }
           } else if (multi==0) {
-            rg_pCmpFile[i]->m_Quelle[3]&= ~(MSelect);
+            mod = (rg_pCmpFile[i]->m_Job & MSelect);
+            rg_pCmpFile[i]->m_Job&= ~(MSelect);
           }
           //redraw_range(i,i,0,6);
-          redraw_range(i,i,0,0);
+          if (mod) redraw_range(i,i,0,6);
         }
         break;
+      } else if (Fl::event()==FL_RELEASE ) {
+        if (validMove ) {
+          LastR = ROW;
+          LastC = COL;
+        } else {
+          startTickCount= 0;
+          if (LastR == ROW &&  LastC == COL) {
+            if (ROW<NumCmpFile) {
+              CCmpFile   * object = rg_pCmpFile[ROW];
+              extern char szSysCmmand[MAX_PATH*3];
+              //char szDiffTool[MAX_PATH] = "diffuse";
+              //char szDiffTool[MAX_PATH] = "meld";
+              if (object ->m_Quelle[0] != NOFILE  && object ->m_Quelle[1] != NOFILE ) {
+                sprintf(szSysCmmand,"%s %s%s/%s %s%s/%s",gszDiffTool,
+                        g_DocsPath[0][gDocShowPrimaryPath],object ->m_Path,object ->m_Name,
+                        g_DocsPath[1][gDocShowPrimaryPath],object ->m_Path,object ->m_Name);
+              } else  {
+                int i = (object ->m_Quelle[0]!=NOFILE)?0:1;
+                sprintf(szSysCmmand,"%s %s%s/%s",gszEditTool,
+                        g_DocsPath[i][gDocShowPrimaryPath],object ->m_Path,object ->m_Name);
+              }
+            }
+          }
+          LastR = -1;
+          LastC = -1;
+        }
       }
       break;
     }
@@ -811,12 +921,143 @@ void CFileTable::event_callback2()
 
 }
 //-------------------------------------------------------------
+#if 0
+static int scroll_start  = 0;
+static int scroll_startx = 0;
+static int scroll_min  = 0;
+static int scroll_max  = 0;
+static int start_fingerx = 0;
+static int start_fingery = 0;
+static int kpix_per_ms;
+static int fingermovecnt = 0;
+//-------------------------------------------------------------
+void FileTableTimerCb(void *data)
+{
+  CTreeView * pTreeView = (CTreeView*)data;
+  if (fingermovecnt) {
+    if (fingermovecnt>0) {
+      fingermovecnt--;
+      scroll_start -= (kpix_per_ms / 100);
+      if (scroll_start < scroll_min) {
+        scroll_start=scroll_min;
+        fingermovecnt=0;
+      }
+    } else if (fingermovecnt< 0) {
+      fingermovecnt++;
+      scroll_start -= (kpix_per_ms / 100);
+      if (scroll_start > scroll_max) {
+        scroll_start=scroll_max;
+        fingermovecnt=0;
+      }
+    }
+    pTreeView ->scroll_to(0,scroll_start);
+    Fl::repeat_timeout(0.005, FileTableTimerCb, data);
+  }
+}
+#endif
 //---------------------------------------------------------------
 // Keyboard and mouse events
 int CFileTable::handle(int e)
 {
   if (1) {
     int ret = Fl_Table/*_Row*/::handle(e);
+#if 0
+    static int validMove;
+    switch (e) {
+    case FL_PUSH : {
+      Fl::focus(this);
+      fingermovecnt = 0;
+      scroll_start  = vscrollbar->value();
+      scroll_startx = hscrollbar->value();
+      scroll_min    = 0;
+      scroll_max    = h()-y();
+      start_fingerx = Fl::event_x();
+      start_fingery = Fl::event_y();
+      int t = GetTickCount();
+      validMove = (t > startTickCount+600);
+      startTickCount= t;
+      return (1);
+    }
+    case FL_DRAG :
+      if (validMove && Fl::event_button()== FL_LEFT_MOUSE) {
+        int valy = Fl::event_y()-start_fingery;
+        int valx = scroll_startx - (Fl::event_x()-start_fingerx);
+        int maxx =w()*2/4;
+        if (valx <0) valx=0;
+        else if (valx > maxx) valx=maxx;
+        //scroll_to(valx,scroll_start-valy);
+        vscrollbar->value(scroll_start-valy);
+        hscrollbar->value(valx);
+        redraw();
+//      row_position();                   // set/get table's current scroll position
+        //    col_position();
+
+      }
+      return (1);
+      break;
+    /*  case FL_MOVE:
+    break;*/
+    case FL_RELEASE : {
+      int valx = Fl::event_x()-start_fingerx;
+      int valy = Fl::event_y()-start_fingery;
+      if (fingermovecnt) {
+        fingermovecnt=0;      // Stop
+      }
+      if (validMove ) {
+        if (abs (valx) > abs(valy)) {
+          if (valx > 50) {
+            //              tMessage * pmsg = (tMessage *)malloc(sizeof(tMessage ));
+            //              pmsg->Code = IDM_PlayListTab;
+            //              pmsg->Value= 0;
+            //              pmsg->receiver = gRadioBerry;
+            //              Fl::awake(pmsg);
+          }
+        } else {
+          /*if (valy < 10 && valy > -10) {
+            CTVItem * p = GetItem(Fl::event_y()-y());
+            if (p) {
+              int ix = FindItemIndex(p);
+              OnClick(p->m_Item_ID,0,Fl::event_x()-x());
+              SelChanged(ix);
+              p->redraw();
+            }
+
+          } else
+          */
+          {
+            int t = (GetTickCount() - startTickCount);
+            if (t < 1000) {
+              int val = Fl::event_y()-start_fingery;
+              scroll_start  = vscrollbar->value();
+              if (t) {
+                kpix_per_ms = val*1000 / t;
+                Fl::repeat_timeout(0.01, FileTableTimerCb, this);
+                fingermovecnt = (val * abs(val)) / (t);
+              }
+            }
+          }
+        }
+        redraw();
+      } else {
+        startTickCount=0;
+        /*CTVItem * p = GetItem(Fl::event_y()-y());
+        if (p) {
+          int ix = FindItemIndex(p);
+          OnClick(p->m_Item_ID,1,Fl::event_x()-x());
+          p->redraw();
+        }
+        */
+
+      }
+      if (Fl::event_button() == FL_RIGHT_MOUSE) {
+      }
+
+      return 1;
+    }
+    break;
+    }
+    int ret = Fl_Table/*_Row*/::handle(e);
+#endif
 #ifdef EDITTABLE
     switch (e) {
     case FL_KEYBOARD: {
@@ -913,7 +1154,7 @@ int CCmpFile::SetFileName(int ID_Volume,char * lpfName)
     int n = strlen(g_DocsPath[ID_Volume][gDocShowPrimaryPath]);
     int n2 = strlen(lpfName);
     if (n2 > n && strncmp(g_DocsPath[ID_Volume][gDocShowPrimaryPath],lpfName,n)==0) {
-      m_Path = strdup(&lpfName[n]+1);
+      m_Path = strdup(&lpfName[n]);
     } else m_Path = strdup(lpfName);
   } else m_Path = strdup(lpfName);
 
@@ -968,8 +1209,13 @@ int NumShowFile= 0;
 int NumLeftOnlyFile  = 0;
 int NumRightOnlyFile = 0;
 int NumDiffFile = 0;
+#ifdef DYNARRY
+int NumCmpFileSize=0;
+CCmpFile  ** rg_pCmpFile;
+#else
+int NumCmpFileSize=NUMFILES;
 CCmpFile  * rg_pCmpFile[NUMFILES];
-
+#endif
 //---------------------------------------------------------------
 void AddCmpFileName(int ID_Volume,char * lpfName)
 {
@@ -984,43 +1230,163 @@ void AddCmpFileName(int ID_Volume,char * lpfName)
       }
     }
   }
-
-  if (NumCmpFile < NUMFILES) {
+#ifdef DYNARRY
+  if (NumCmpFile >= (NumCmpFileSize-1)) {
+    rg_pCmpFile = (CCmpFile **)realloc(rg_pCmpFile,((NumCmpFileSize+4000) *sizeof(CCmpFile *) ));
+    if (rg_pCmpFile) NumCmpFileSize+=4000;
+    else NumCmpFileSize = 0;
+  }
+#endif
+  if (NumCmpFile < NumCmpFileSize ) { //NUMFILES) {
     CCmpFile * Object = (CCmpFile*) new CCmpFile();
     Object->SetFileName(ID_Volume,lpfName);
+#ifdef DYNARRY
+    DWORD q = Object->CompareFile(ID_Volume);
+#else
     DWORD q = FileArchivDB->CompareFile(ID_Volume,Object->m_Path,Object->m_Name);
+#endif
     (*(DWORD*)&Object->m_Quelle) = q;
 
-/*    Object ->m_Quelle[3]= ITEM_VISIBLE;
+    //Object ->m_Quelle[3]= ITEM_VISIBLE;
     if (Object->m_Quelle[0]== NOFILE && Object->m_Quelle[1]!= NOFILE ) {
       NumRightOnlyFile++;
-      Object ->m_dwShow |= MServerSrc | ITEM_FAIL;
+//      Object ->m_dwShow |= MServerSrc | ITEM_FAIL;
     } else if (Object->m_Quelle[0]!= NOFILE && Object->m_Quelle[1]== NOFILE ) {
-      Object ->m_dwShow |= MLocalSrc | ITEM_FAIL;
+      //    Object ->m_dwShow |= MLocalSrc | ITEM_FAIL;
       NumLeftOnlyFile++;
     }
-    if (Object->m_Quelle[0]!= EQUAL  || Object->m_Quelle[1]!= EQUAL ) {
-      Object ->m_dwShow |= MDiffer| ITEM_FAIL;
-      NumDiffFile++;
+    if (Object->m_Quelle[0]== EQUAL  && Object->m_Quelle[1]== EQUAL ) {
+//      Object ->m_dwShow |= MEqual |ITEM_OK ;
     } else {
-      Object ->m_dwShow |= MEqual | ITEM_OK;
+//      Object ->m_dwShow |= MDiffer| ITEM_FAIL;
+      NumDiffFile++;
     }
-*/
-    if ((gSourceAndCompareMuster&MIgnore) || (Object ->m_Quelle[3] & (gSourceAndCompareMuster & MShowMask))) {
+
+#ifdef DYNARRY
+    rg_pCmpFile[NumCmpFile] = Object;
+    NumCmpFile++;
+    NumShowFile = NumCmpFile;
+#else
+    if ((gSourceAndCompareMuster&MIgnore) || (Object ->m_Job & (gSourceAndCompareMuster & MShowMask))) {
       rg_pCmpFile[NumCmpFile] = Object;
-      //rg_pCmpFile[NumCmpFile] ->SetFileName(lpfName);
       NumCmpFile++;
       NumShowFile = NumCmpFile;
     } else {
       delete (Object);
     }
-
-    char s[200];
-    sprintf(s,"%s LIST %3d, Lo %2d, Ro %2d, Dif %2d",(NumCmpFile>=NUMFILES)?"OVERLOAD":"",NumCmpFile,NumLeftOnlyFile,NumRightOnlyFile,NumDiffFile);
-    SetStatusText(s,1,0 );
+#endif
+    if ((NumCmpFile&0x3F)==0) {
+      char s[200];
+      //sprintf(s,"%s LIST %3d, Lo %2d, Ro %2d, Dif %2d",(NumCmpFile>=NUMFILES)?"OVERLOAD":"",NumCmpFile,NumLeftOnlyFile,NumRightOnlyFile,NumDiffFile);
+      sprintf(s,"LIST %3d, Lo %2d, Ro %2d, Dif %2d",NumCmpFile,NumLeftOnlyFile,NumRightOnlyFile,NumDiffFile);
+      SetStatusText(s,1,0 );
+    }
   }
 }
 
+BOOL CCmpFile::CompareFile(int BasisID)
+{
+  struct stat statbuffer;
+  char str[MAX_PATH];
+  unsigned char quelle[4] = {NOFILE,NOFILE,NOFILE,NOFILE };   //{FL_DARK1,FL_DARK1,FL_DARK1,FL_DARK1};
+  time_t   ftLastWriteTime[4]= {0,0,0,0};
+  long     nFileSize[4]= {0,0,0,0};
+  time_t tneuste=0;
+  int    ineuste = BasisID;
+  long   sneuste=0;
+
+  if (gDocShowPrimaryPath>=0 && gDocShowPrimaryPath  < 7) {
+    for (int b=0; b< 3; b++) {
+      strcpy(str,g_DocsPath[b][gDocShowPrimaryPath]);
+      strcat(str,"/");
+      strcat(str,m_Path);
+      strcat(str,"/");
+      strcat(str,m_Name);
+
+      if (stat(str, &statbuffer)==0) {
+        ftLastWriteTime[b] = statbuffer.st_mtime;
+        nFileSize[b]= statbuffer.st_size;
+        if (ftLastWriteTime[b]>tneuste) {
+          tneuste = ftLastWriteTime[b];
+          sneuste = nFileSize[b];
+          ineuste = b;
+        }
+      }
+    }
+    int EQUALTDcnt=0;
+    int EQUALTcnt=0;
+    for (int i=0; i< 3; i++) {
+      time_t diff = tneuste - ftLastWriteTime[i];
+      if (ftLastWriteTime[i] == 0) {
+        quelle[i] = NOFILE;
+      } else if (nFileSize[i] == 0) {
+        quelle[i] = NOFILE;
+      } else if (nFileSize[i] != sneuste) {
+        quelle[i] = SIZEDIFF;
+      } else if (diff==3600 || diff==-3600) {
+        // Zeit-Zone ?
+        quelle[i] = EQUALTD;
+        EQUALTDcnt++;
+      } else if (diff!=0) {
+        quelle[i] = TIMEDIFF;
+      } else {
+        quelle[i] = EQUAL;
+        EQUALTcnt++;
+      }
+    }
+    if       (EQUALTcnt==3)              /*quelle[3] = EQUAL   ,*/m_SortKey=NumCmpFile+1;
+    else if ((EQUALTcnt +EQUALTDcnt)==3) /*quelle[3] = EQUALTD ,*/m_SortKey=NumCmpFile+1;
+    else                                 /*quelle[3] = SIZEDIFF,*/m_SortKey=0;
+    /*int l = strlen(m_Path);
+    l += strlen(m_Name);
+    if (l < sizeof(m_Record.FileName)-1) {
+      if (GetRecordByPathAndName(lpfPath,lpfName)) {
+        time_t tneuste = statbuffer.st_mtime;
+        int    ineuste = BasisID;
+        long   sneuste = statbuffer.st_size;
+        int i;
+        for (i=0; i< 4; i++) {
+          if (i!=BasisID) {
+            if (m_Record.ftLastWriteTime[i]>tneuste) {
+              tneuste = m_Record.ftLastWriteTime[i];
+              sneuste = m_Record.nFileSize[i];
+              ineuste = i;
+            }
+          } else {
+            if (m_Record.ftLastWriteTime[i] != statbuffer.st_mtime ||
+                m_Record.nFileSize[i]       != statbuffer.st_size) {
+              // Datensatz und Wirklichkeit sind unterschiedlich
+              m_Record.ftLastWriteTime[i] = statbuffer.st_mtime;
+              m_Record.nFileSize[i]       = statbuffer.st_size;
+              UpdateRecordFileTime(BasisID,m_Record.ID,statbuffer.st_mtime,statbuffer.st_size);
+            }
+          }
+        }
+        for (i=0; i< 4; i++) {
+          time_t diff = tneuste - m_Record.ftLastWriteTime[i];
+          if (m_Record.ftLastWriteTime[i] == 0) {
+            quelle[i] = NOFILE;
+          } else if (m_Record.nFileSize[i] == 0) {
+            quelle[i] = NOFILE;
+          } else if (m_Record.nFileSize[i] != sneuste) {
+            quelle[i] = SIZEDIFF;
+          } else if (diff==3600 || diff==-3600) {
+            // Zeit-Zone ?
+            quelle[i] = EQUALTD;
+          } else if (diff!=0) {
+            quelle[i] = TIMEDIFF;
+          } else {
+            quelle[i] = EQUAL;
+          }
+        }
+      } else {
+        // Nicht in DB, nur als File Vorhanden
+        quelle[BasisID] = SIZEDIFF;
+      }
+    }*/
+  }
+  return *((DWORD*)&quelle);
+}
 //---------------------------------------------------------------
 CCmpFile::CCmpFile()
 {
@@ -1033,6 +1399,8 @@ CCmpFile::CCmpFile()
   m_Size=0;
   m_FileType=0;
   m_Datum=0;
+  m_SortKey =0;
+  m_Job     = 0;
 }
 //---------------------------------------------------------------
 CCmpFile::~CCmpFile()
@@ -1056,6 +1424,13 @@ void ClearCmpFileNameList()
   NumLeftOnlyFile  = 0;
   NumRightOnlyFile = 0;
   NumDiffFile = 0;
+#ifdef DYNARRY
+  if (NumCmpFileSize==0) {
+    rg_pCmpFile = (CCmpFile **) malloc((4000 *sizeof(CCmpFile  *) ));
+    if (rg_pCmpFile) NumCmpFileSize+=4000;
+  }
+#else
+#endif
 }
 
 //---------------------------------------------------------------
@@ -1064,6 +1439,9 @@ void AdjustFileTable()
   if (gCmpSheet) {
     gCmpSheet->rows(NumShowFile);////NumCmpFile);
     gCmpSheet->redraw();
+    char s[200];
+    sprintf(s,"LIST %3d/%3d, Lo %2d, Ro %2d, Dif %2d",NumShowFile,NumCmpFile,NumLeftOnlyFile,NumRightOnlyFile,NumDiffFile);
+    SetStatusText(s,1,0 );
   }
 }
 //---------------------------------------------------------------
